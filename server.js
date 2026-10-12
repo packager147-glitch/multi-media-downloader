@@ -88,16 +88,16 @@ async function fetchMediaViaAllInOneAPI(instagramUrl) {
         }
     }
 
-    // Approach 2: Failsafe Scanner
-    if (mediaResults.length === 0 || !mediaResults.url) {
-        console.log("[Scanner] Strict keys empty. Booting fallback scanner...");
+    // Approach 2: Safe Failsafe Scanner (Corrected array length check to fix the silent crash loop)
+    if (mediaResults.length === 0) {
+        console.log("[Scanner] Strict keys empty or layout undefined. Booting fallback scanner...");
         mediaResults = deepFindMediaUrls(data);
     }
 
     // Filter out duplicates and invalid strings cleanly
     const seenUrls = new Set();
     const finalCleaned = mediaResults.filter(item => {
-        if (!item.url || typeof item.url !== 'string') return false;
+        if (!item || !item.url || typeof item.url !== 'string') return false;
         const base = item.url.split('?')[0];
         if (seenUrls.has(base)) return false;
         seenUrls.add(base);
@@ -105,7 +105,7 @@ async function fetchMediaViaAllInOneAPI(instagramUrl) {
     });
 
     if (finalCleaned.length === 0) {
-        throw new Error("Could not parse media components out of the API response structure.");
+        throw new Error("Could not isolate direct file properties out of the API response structure.");
     }
 
     return { username, media: finalCleaned };
@@ -122,7 +122,7 @@ app.post('/api/download', async (req, res) => {
         return res.json({ success: true, username: dataObject.username, media: dataObject.media });
     } catch (error) {
         console.error(`Processing error stack:`, error.message);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
