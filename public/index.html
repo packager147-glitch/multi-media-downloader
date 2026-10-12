@@ -41,7 +41,7 @@
 <body>
 
 <div class="app-container">
-    <!-- Left Column: Main Media Extractor Work Card -->
+    <!-- Left Column: Main Media Extractor Card -->
     <div class="card">
         <h1>Insta Downloader</h1>
         <p class="subtitle">Extract Reels, Carousel Images, Posts & Stories</p>
@@ -67,7 +67,6 @@
 </div>
 
 <script>
-    // Initialize history panel logs on page load
     document.addEventListener("DOMContentLoaded", renderHistory);
 
     async function pasteFromClipboard() {
@@ -107,8 +106,6 @@
 
             if (data.success && data.media && data.media.length > 0) {
                 const currentTimestamp = new Date().toLocaleString();
-                
-                // Append metrics down into local disk tracker history
                 saveToHistory(data.username, currentTimestamp, data.media);
 
                 data.media.forEach((item, index) => {
@@ -137,7 +134,7 @@
                 errorMsg.style.display = 'block';
             }
         } catch (err) {
-            errorMsg.innerText = 'Server extraction fault occurred.';
+            errorMsg.innerText = 'Server error occurred while extracting media parameters.';
             errorMsg.style.display = 'block';
         } finally {
             fetchBtn.disabled = false;
@@ -178,8 +175,8 @@
             let previewsHtml = '';
             item.previews.forEach(p => {
                 if (p.type === 'video') {
-previewsHtml += <video class="history-thumb" src="${p.url}" muted preload="metadata"></video>;
-} else {
+                    previewsHtml += `<video class="history-thumb" src="${p.url}" muted preload="metadata"></video>`;
+                } else {
 previewsHtml += <img class="history-thumb" src="${p.url}" alt="Thumb" />;
 }
 });
