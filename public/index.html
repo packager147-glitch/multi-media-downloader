@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Instagram Downloader</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #fafafa; margin: 0; padding: 20px; box-sizing: border-box; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .app-container { display: flex; gap: 24px; width: 100%; max-width: 1050px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+        .card, .history-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); width: 100%; max-width: 480px; border: 1px solid #dbdbdb; box-sizing: border-box; }
+        .history-card { max-width: 450px; height: 580px; display: flex; flex-direction: column; }
+        h1 { color: #262626; font-size: 26px; margin: 0 0 6px 0; font-weight: 700; }
+        h2 { color: #262626; font-size: 20px; margin: 0; font-weight: 700; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #dbdbdb; }
+        p.subtitle { color: #8e8e8e; font-size: 14px; margin: 0 0 24px 0; }
+        .input-container { display: flex; gap: 8px; margin-bottom: 15px; }
+        input { flex: 1; padding: 14px 12px; border: 1px solid #dbdbdb; border-radius: 8px; box-sizing: border-box; font-size: 14px; background: #fafafa; transition: all 0.2s ease; }
+        input:focus { outline: none; border-color: #a8a8a8; background: white; }
+        .paste-btn { padding: 0 16px; background-color: #efefef; border: 1px solid #dbdbdb; border-radius: 8px; color: #262626; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+        .paste-btn:hover { background-color: #e2e2e2; }
+        button.action-btn { width: 100%; padding: 14px; background-color: #0095f6; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s ease; }
+        button.action-btn:hover { background-color: #1877f2; }
+        button.action-btn:disabled { background-color: #b2dffc; cursor: not-allowed; }
+        .clear-btn { background: none; border: none; color: #ed4956; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
+        .clear-btn:hover { text-decoration: underline; }
+        .error { color: #ed4956; margin-top: 15px; font-size: 14px; font-weight: 500; display: none; }
+        .result-container { margin-top: 25px; text-align: left; max-height: 380px; overflow-y: auto; padding-right: 5px; }
+        .history-list { flex: 1; overflow-y: auto; text-align: left; padding-right: 5px; }
+        .media-item { background: #ffffff; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid #e6e6e6; }
+        .history-item { background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e6e6e6; }
+        .history-meta { font-size: 13px; color: #8e8e8e; margin-bottom: 8px; display: flex; flex-direction: column; gap: 2px; }
+        .history-username { font-weight: 700; color: #262626; font-size: 14px; }
+        .history-previews { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+        .media-preview { max-width: 100%; max-height: 220px; border-radius: 6px; object-fit: contain; background: #000; }
+        .history-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; background: #000; border: 1px solid #dbdbdb; flex-shrink: 0; }
+        .download-link { display: block; width: 100%; text-align: center; padding: 12px 0; background-color: #34a853; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; text-decoration: none; box-sizing: border-box; transition: background-color 0.2s ease; }
+        .download-link:hover { background-color: #2e8b46; }
+        .empty-history { color: #8e8e8e; font-size: 14px; text-align: center; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Left Column: Main Media Extractor Work Card -->
+    <div class="card">
+        <h1>Insta Downloader</h1>
+        <p class="subtitle">Extract Reels, Carousel Images, Posts & Stories</p>
+        
+        <div class="input-container">
+            <input type="text" id="urlInput" placeholder="Paste Instagram link here..." />
+            <button class="paste-btn" onclick="pasteFromClipboard()">Paste</button>
+        </div>
+        
+        <button id="fetchBtn" class="action-btn" onclick="handleDownload()">Extract Media</button>
+        <div id="errorMsg" class="error"></div>
+        <div id="resultContainer" class="result-container"></div>
+    </div>
+
+    <!-- Right Column: User Extraction History Box Tracker -->
+    <div class="history-card">
+        <div class="history-header">
+            <h2>Download History</h2>
+            <button class="clear-btn" onclick="clearHistory()">Clear All</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+    </div>
+</div>
+
+<script>
+    // Initialize history panel logs on page load
+    document.addEventListener("DOMContentLoaded", renderHistory);
+
+    async function pasteFromClipboard() {
+        try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('urlInput').value = text;
+        } catch (err) {
+            console.warn("Clipboard access blocked by browser privacy controls.");
+        }
+    }
+
+    async function handleDownload() {
+        const urlInput = document.getElementById('urlInput').value.trim();
+        const fetchBtn = document.getElementById('fetchBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const resultContainer = document.getElementById('resultContainer');
+
+        errorMsg.style.display = 'none';
+        resultContainer.innerHTML = '';
+
+        if (!urlInput) {
+            errorMsg.innerText = 'Please paste a valid link.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        fetchBtn.disabled = true;
+        fetchBtn.innerText = 'Extracting content stream...';
+
+        try {
+            const response = await fetch('/api/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: urlInput })
+            });
+            const data = await response.json();
+
+            if (data.success && data.media && data.media.length > 0) {
+                const currentTimestamp = new Date().toLocaleString();
+                
+                // Append metrics down into local disk tracker history
+                saveToHistory(data.username, currentTimestamp, data.media);
+
+                data.media.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'media-item';
+
+                    const fileExtension = item.type === 'video' ? 'mp4' : 'jpg';
+                    const filename = `instagram_${item.type}_${Date.now()}_${index + 1}.${fileExtension}`;
+                    const proxyUrl = `/api/proxy-download?url=${encodeURIComponent(item.url)}&filename=${encodeURIComponent(filename)}`;
+
+                    if (item.type === 'video') {
+                        itemDiv.innerHTML = `
+                            <video class="media-preview" src="${item.url}" controls preload="metadata"></video>
+                            <a class="download-link" href="${proxyUrl}">Download Video #${index + 1}</a>
+                        `;
+                    } else {
+                        itemDiv.innerHTML = `
+                            <img class="media-preview" src="${item.url}" alt="Preview" />
+                            <a class="download-link" href="${proxyUrl}">Download Image #${index + 1}</a>
+                        `;
+                    }
+                    resultContainer.appendChild(itemDiv);
+                });
+            } else {
+                errorMsg.innerText = data.error || 'No downloadable content detected.';
+                errorMsg.style.display = 'block';
+            }
+        } catch (err) {
+            errorMsg.innerText = 'Server extraction fault occurred.';
+            errorMsg.style.display = 'block';
+        } finally {
+            fetchBtn.disabled = false;
+            fetchBtn.innerText = 'Extract Media';
+        }
+    }
+
+    function saveToHistory(username, timestamp, mediaItems) {
+        let currentHistory = JSON.parse(localStorage.getItem('download_history')) || [];
+        
+        const historyEntry = {
+            username: username.startsWith('@') ? username : `@${username}`,
+            timestamp: timestamp,
+            previews: mediaItems.map(item => ({ type: item.type, url: item.url }))
+        };
+
+        currentHistory.unshift(historyEntry);
+        if (currentHistory.length > 20) currentHistory.pop();
+        
+        localStorage.setItem('download_history', JSON.stringify(currentHistory));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const historyList = document.getElementById('historyList');
+        const currentHistory = JSON.parse(localStorage.getItem('download_history')) || [];
+        historyList.innerHTML = '';
+
+        if (currentHistory.length === 0) {
+            historyList.innerHTML = '<div class="empty-history">Your download logs will map here seamlessly.</div>';
+            return;
+        }
+
+        currentHistory.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'history-item';
+
+            let previewsHtml = '';
+            item.previews.forEach(p => {
+                if (p.type === 'video') {
+previewsHtml += <video class="history-thumb" src="${p.url}" muted preload="metadata"></video>;
+} else {
+previewsHtml += <img class="history-thumb" src="${p.url}" alt="Thumb" />;
+}
+});
+itemDiv.innerHTML = <div class="history-meta"> <span class="history-username">${item.username}</span> <span>Clocked: ${item.timestamp}</span> </div> <div class="history-previews"> ${previewsHtml} </div>;
+historyList.appendChild(itemDiv);
+});
+}
+function clearHistory() {
+if (confirm("Are you sure you want to clear your local download history logs?")) {
+localStorage.removeItem('download_history');
+renderHistory();
+}
+}
