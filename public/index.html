@@ -67,6 +67,7 @@
 </div>
 
 <script>
+    // Run history render immediately upon DOM generation
     document.addEventListener("DOMContentLoaded", renderHistory);
 
     async function pasteFromClipboard() {
@@ -176,7 +177,7 @@
             item.previews.forEach(p => {
                 if (p.type === 'video') {
                     previewsHtml += `<video class="history-thumb" src="${p.url}" muted preload="metadata"></video>`;
-                } else {
+} else {
 previewsHtml += <img class="history-thumb" src="${p.url}" alt="Thumb" />;
 }
 });
@@ -190,6 +191,3 @@ localStorage.removeItem('download_history');
 renderHistory();
 }
 }
-</script>
-</body>
-</html>
